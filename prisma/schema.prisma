@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Clã acompanhado pelo ClanHub. A tag é o identificador da API oficial.
+model Clan {
+  id        String      @id @default(cuid())
+  tag       String      @unique
+  name      String?
+  syncedAt  DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  wars      WarRecord[]
+}
+
+/// Guerra observada na API. `finished` só é verdadeiro quando a guerra encerrou.
+model WarRecord {
+  id               String             @id @default(cuid())
+  clanId           String
+  clan             Clan               @relation(fields: [clanId], references: [id], onDelete: Cascade)
+  kind             String
+  finished         Boolean
+  rosterKnown      Boolean
+  endTime          DateTime
+  opponentTag      String
+  opponentName     String
+  teamSize         Int
+  attacksPerMember Int?
+  season           String?
+  round            Int?
+  participations   WarParticipation[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@unique([clanId, kind, endTime, opponentTag])
+  @@index([clanId, endTime])
+}
+
+/// Elenco de uma guerra quando a API enviou os membros. Ataques ficam no JSON original.
+model WarParticipation {
+  id         String    @id @default(cuid())
+  warId      String
+  war        WarRecord @relation(fields: [warId], references: [id], onDelete: Cascade)
+  playerTag  String
+  playerName String
+  townHall   Int
+  attacks    Json
+
+  @@unique([warId, playerTag])
+}
